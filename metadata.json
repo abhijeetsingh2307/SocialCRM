@@ -1,0 +1,6 @@
+{
+  "name": "Social CRM Chrome Extension",
+  "description": "Chrome extension and CRM dashboard to save LinkedIn, X, and Instagram profile URLs, manage tags, notes, follow-up reminders, and sync contacts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
