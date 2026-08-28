@@ -147,7 +147,38 @@ export const UserAuthMenu: React.FC<UserAuthMenuProps> = ({ totalContacts }) => 
               </span>
             </div>
             <p className="text-[10px] text-emerald-700 leading-tight">
-              Changes sync in real time to your secure Firestore cloud database and are accessible from any browser.
+              Changes sync in real time to your secure Firestore cloud database.
+            </p>
+          </div>
+
+          {/* Extension Account Sync Key */}
+          <div className="bg-slate-50 border border-slate-200 p-2.5 space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+              <span>Your Extension Sync Key</span>
+              <span className="text-emerald-600 font-normal">Connects Sidebar</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                readOnly
+                value={user.uid}
+                className="w-full text-[10px] font-mono bg-white border border-slate-300 p-1.5 text-slate-800 select-all"
+                title="Your unique Cloud Sync Key"
+              />
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(user.uid);
+                  setSyncFeedback('Sync Key copied!');
+                  setTimeout(() => setSyncFeedback(null), 2500);
+                }}
+                className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold transition shrink-0 cursor-pointer"
+                title="Copy key to paste into your Chrome Extension settings"
+              >
+                Copy
+              </button>
+            </div>
+            <p className="text-[9.5px] text-slate-500">
+              Paste this in the Chrome Extension sidebar to automatically save LinkedIn, X & Instagram profiles directly to your account.
             </p>
           </div>
 

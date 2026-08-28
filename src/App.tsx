@@ -113,8 +113,24 @@ export default function App() {
           setContacts(e.detail);
         }
       };
+
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'social_crm_contacts_v2' && e.newValue) {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            setContacts(parsed);
+          } catch (err) {
+            // ignore
+          }
+        }
+      };
+
       window.addEventListener('social_crm_updated', handleSync);
-      return () => window.removeEventListener('social_crm_updated', handleSync);
+      window.addEventListener('storage', handleStorageChange);
+      return () => {
+        window.removeEventListener('social_crm_updated', handleSync);
+        window.removeEventListener('storage', handleStorageChange);
+      };
     }
   }, [user]);
 
@@ -343,18 +359,18 @@ export default function App() {
           <div className="bg-gradient-to-r from-indigo-900 to-slate-900 text-white p-4 border border-indigo-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 font-bold shrink-0">
-                <Cloud className="w-4 h-4" />
+                <Sparkles className="w-4 h-4 text-amber-300" />
               </div>
               <div>
-                <p className="font-bold text-xs">Access Your Social CRM Live on Any Device</p>
+                <p className="font-bold text-xs">Free 1000 contacts for each platform</p>
                 <p className="text-[11px] text-slate-300">
-                  Sign in with Google to synchronize all your LinkedIn, X & Instagram profile contacts, notes, and reminders to your cloud account.
+                  Get started for free · Sync your contacts, notes, and reminders across all devices.
                 </p>
               </div>
             </div>
             <button
               onClick={login}
-              className="px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-900 text-xs font-bold transition flex items-center gap-2 cursor-pointer shrink-0"
+              className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-900 text-xs font-bold transition flex items-center gap-2 cursor-pointer shrink-0 shadow-xs active:bg-slate-200"
             >
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
                 <path
@@ -374,7 +390,7 @@ export default function App() {
                   d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.93 6.72-4.93z"
                 />
               </svg>
-              <span>Connect Google Account</span>
+              <span>Get Started for Free</span>
             </button>
           </div>
         )}
@@ -462,7 +478,7 @@ export default function App() {
       {/* Minimal Footer */}
       <footer className="mt-auto border-t border-slate-200 py-4 bg-white text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Social Contact CRM · Privacy-Safe Profile URL Management</span>
+          <span>SocialCRM · Privacy-Safe Profile URL Management</span>
           <div className="flex items-center gap-3 text-[11px]">
             <span className="text-emerald-600 flex items-center gap-1 font-semibold">
               <CheckCircle2 className="w-3.5 h-3.5" />

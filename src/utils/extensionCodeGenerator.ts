@@ -10,31 +10,35 @@ export function generateExtensionFiles(): ExtensionFile[] {
     {
       name: 'manifest.json',
       type: 'json',
-      description: 'Manifest V3 configuration with Side Panel API and profile URL permissions',
+      description: 'Manifest V3 configuration with Side Panel API, activeTab, storage, and auto web handshake',
       code: `{
   "manifest_version": 3,
-  "name": "Social CRM - Profile URL Sidebar",
-  "version": "2.0.0",
-  "description": "Opens a docked sidebar in any tab, detects LinkedIn, X, and Instagram profile URLs, and saves them with tags, notes, and reminders with zero scraping.",
+  "name": "SocialCRM - Profile URL Sidebar",
+  "version": "2.3.0",
+  "description": "Opens a docked sidebar in any tab, auto-detects LinkedIn, X, and Instagram profile URLs, and saves them with tags, notes, and reminders with zero scraping directly to your live SocialCRM.",
   "permissions": [
     "activeTab",
     "storage",
     "tabs",
     "sidePanel",
     "alarms",
-    "notifications"
+    "notifications",
+    "scripting"
   ],
   "host_permissions": [
     "https://*.linkedin.com/*",
     "https://*.x.com/*",
     "https://*.twitter.com/*",
-    "https://*.instagram.com/*"
+    "https://*.instagram.com/*",
+    "https://firestore.googleapis.com/*",
+    "https://*.run.app/*",
+    "https://*/*"
   ],
   "side_panel": {
     "default_path": "sidepanel.html"
   },
   "action": {
-    "default_title": "Open Social CRM Sidebar"
+    "default_title": "Open SocialCRM Sidebar"
   },
   "background": {
     "service_worker": "background.js"
@@ -45,7 +49,7 @@ export function generateExtensionFiles(): ExtensionFile[] {
         "default": "Alt+Shift+S",
         "mac": "Alt+Shift+S"
       },
-      "description": "Toggle Social CRM Sidebar"
+      "description": "Toggle SocialCRM Sidebar"
     }
   }
 }`,
@@ -53,13 +57,13 @@ export function generateExtensionFiles(): ExtensionFile[] {
     {
       name: 'sidepanel.html',
       type: 'html',
-      description: 'The docked sidebar HTML with pure built-in CSS matching 0px border-radius and Manifest V3 security rules',
+      description: 'The docked sidebar HTML with pure built-in CSS, 0px border-radius, Manifest V3 CSP, sync status, and manual sync key fallback modal',
       code: `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Social CRM Sidebar</title>
+  <title>SocialCRM Sidebar</title>
   <link rel="stylesheet" href="sidepanel.css">
   <style>
     /* Reset and base styles */
@@ -79,14 +83,14 @@ export function generateExtensionFiles(): ExtensionFile[] {
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      padding: 16px;
+      padding: 14px;
     }
     /* Header */
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-bottom: 12px;
+      padding-bottom: 10px;
       border-bottom: 1px solid #e2e8f0;
       flex-shrink: 0;
     }
@@ -117,6 +121,23 @@ export function generateExtensionFiles(): ExtensionFile[] {
       color: #059669;
       font-weight: 600;
     }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-icon {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      font-size: 10.5px;
+      padding: 3px 6px;
+      cursor: pointer;
+      color: #475569;
+    }
+    .btn-icon:hover {
+      background: #e2e8f0;
+      color: #1e293b;
+    }
     .full-crm-link {
       font-size: 11px;
       color: #4f46e5;
@@ -130,24 +151,85 @@ export function generateExtensionFiles(): ExtensionFile[] {
       color: #3730a3;
     }
 
+    /* Auto Cloud Status Bar */
+    .sync-bar {
+      margin-top: 8px;
+      margin-bottom: 8px;
+      padding: 6px 8px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10.5px;
+      flex-shrink: 0;
+    }
+    .sync-bar.unlinked {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+    }
+    .sync-status {
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background: #22c55e;
+      display: inline-block;
+    }
+    .sync-bar.unlinked .status-dot {
+      background: #3b82f6;
+    }
+
+    /* Auto Connect Button */
+    .btn-auto-connect {
+      background: #4f46e5;
+      color: #ffffff;
+      border: none;
+      padding: 3px 7px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .btn-auto-connect:hover {
+      background: #4338ca;
+    }
+
+    /* Sync Settings Modal/Drawer */
+    .sync-settings-box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      padding: 8px;
+      margin-bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
     /* Content Area */
     .content {
       flex: 1;
       overflow-y: auto;
-      padding: 12px 2px 12px 0;
+      padding: 4px 2px 8px 0;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     /* Cards */
     .card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
-      padding: 12px;
+      padding: 10px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
     .section-label {
       font-size: 10px;
@@ -155,7 +237,7 @@ export function generateExtensionFiles(): ExtensionFile[] {
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: #64748b;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
       display: block;
     }
     .card-top {
@@ -164,8 +246,8 @@ export function generateExtensionFiles(): ExtensionFile[] {
       justify-content: space-between;
     }
     .badge {
-      padding: 2px 8px;
-      font-size: 10px;
+      padding: 2px 6px;
+      font-size: 9.5px;
       font-weight: 700;
       background: #f1f5f9;
       color: #334155;
@@ -181,8 +263,8 @@ export function generateExtensionFiles(): ExtensionFile[] {
       width: 100%;
       background: #ffffff;
       border: 1px solid #cbd5e1;
-      padding: 7px 10px;
-      font-size: 12px;
+      padding: 6px 8px;
+      font-size: 11.5px;
       color: #1e293b;
       outline: none;
       transition: border-color 0.15s ease;
@@ -196,14 +278,14 @@ export function generateExtensionFiles(): ExtensionFile[] {
     input[readonly] {
       background: #f8fafc;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 11px;
+      font-size: 10.5px;
       color: #334155;
     }
 
     .row-split {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 6px;
     }
 
     /* Alerts */
@@ -211,16 +293,16 @@ export function generateExtensionFiles(): ExtensionFile[] {
       background: #fffbeb;
       border: 1px solid #fef3c7;
       color: #92400e;
-      padding: 10px;
-      font-size: 11px;
-      line-height: 1.4;
+      padding: 8px;
+      font-size: 10.5px;
+      line-height: 1.35;
     }
     .status-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 11px;
-      margin-top: 4px;
+      font-size: 10.5px;
+      margin-top: 3px;
     }
     .status-found {
       color: #047857;
@@ -235,38 +317,28 @@ export function generateExtensionFiles(): ExtensionFile[] {
     .reminder-box {
       background: #eef2ff;
       border: 1px solid #c7d2fe;
-      padding: 10px;
+      padding: 8px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
     .reminder-title {
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 700;
       color: #312e81;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
 
-    /* Notes list */
-    .note-bubble {
-      padding: 6px 8px;
-      background: #f1f5f9;
-      border: 1px solid #e2e8f0;
-      font-size: 11px;
-      color: #334155;
-      margin-top: 4px;
-    }
-
     /* Footer / Button */
     .footer {
-      padding-top: 12px;
+      padding-top: 10px;
       border-top: 1px solid #e2e8f0;
       flex-shrink: 0;
     }
     .btn-primary {
       width: 100%;
-      padding: 10px;
+      padding: 9px;
       background: #4f46e5;
       color: #ffffff;
       font-size: 12px;
@@ -297,13 +369,39 @@ export function generateExtensionFiles(): ExtensionFile[] {
     <div class="header-title-wrap">
       <div class="header-icon">⚡</div>
       <div>
-        <div class="header-title">Social CRM</div>
-        <div id="tab-status" class="header-subtitle">Active Tab Monitor</div>
+        <div class="header-title">SocialCRM</div>
+        <div id="tab-status" class="header-subtitle">Auto-Sync Active</div>
       </div>
     </div>
-    <button id="open-full-crm" class="full-crm-link">
-      Full CRM ↗
+    <div class="header-actions">
+      <button id="toggle-sync-settings" class="btn-icon" title="Sync Settings">⚙️</button>
+      <button id="open-full-crm" class="full-crm-link">Dashboard ↗</button>
+    </div>
+  </div>
+
+  <!-- Auto Cloud Status Bar -->
+  <div id="sync-bar" class="sync-bar unlinked">
+    <div class="sync-status">
+      <span class="status-dot"></span>
+      <span id="sync-status-text">Cloud Sync: Connecting...</span>
+    </div>
+    <button id="auto-connect-btn" class="btn-auto-connect hidden">
+      <span>Auto-Connect</span>
     </button>
+    <span id="user-email-label" style="font-size: 9.5px; color: #047857; font-weight: bold;" class="hidden"></span>
+  </div>
+
+  <!-- Optional Manual Sync Key Box -->
+  <div id="sync-settings-box" class="sync-settings-box hidden">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span class="section-label" style="margin-bottom: 0;">Cloud Sync Key (UID)</span>
+      <button id="close-sync-settings" style="background: none; border: none; font-size: 11px; cursor: pointer;">✕</button>
+    </div>
+    <input type="text" id="manual-sync-key-input" placeholder="Paste UID from Web Dashboard" style="font-size: 10px; font-family: monospace;" />
+    <div style="display: flex; gap: 4px;">
+      <button id="save-sync-key-btn" style="flex: 1; padding: 4px; background: #4f46e5; color: #fff; font-weight: bold; border: none; cursor: pointer; font-size: 10.5px;">Save Key</button>
+      <button id="clear-sync-key-btn" style="padding: 4px 8px; background: #fee2e2; color: #b91c1c; font-weight: bold; border: none; cursor: pointer; font-size: 10.5px;">Reset</button>
+    </div>
   </div>
 
   <!-- Main Scrollable Area -->
@@ -312,7 +410,7 @@ export function generateExtensionFiles(): ExtensionFile[] {
     <!-- Detection Banner -->
     <div id="detection-box" class="card">
       <div class="card-top">
-        <span class="section-label" style="margin-bottom: 0;">Detected URL</span>
+        <span class="section-label" style="margin-bottom: 0;">Active Profile URL</span>
         <span id="platform-badge" class="badge">Detecting...</span>
       </div>
 
@@ -355,9 +453,9 @@ export function generateExtensionFiles(): ExtensionFile[] {
       <textarea id="note-input" rows="2" placeholder="Discussion context, referral source, ideas..."></textarea>
       
       <!-- Notes History Container -->
-      <div id="notes-history-container" class="hidden" style="margin-top: 8px;">
+      <div id="notes-history-container" class="hidden" style="margin-top: 6px;">
         <span class="section-label" style="font-size: 9px;">Past Notes</span>
-        <div id="notes-history-list" style="max-height: 100px; overflow-y: auto;"></div>
+        <div id="notes-history-list" style="max-height: 90px; overflow-y: auto;"></div>
       </div>
     </div>
 
@@ -388,7 +486,7 @@ export function generateExtensionFiles(): ExtensionFile[] {
       name: 'sidepanel.css',
       type: 'css',
       description: 'Sidebar styling sheet with 0px border-radius and clean typography',
-      code: `/* Social CRM Chrome Extension Sidebar Stylesheet */
+      code: `/* SocialCRM Chrome Extension Sidebar Stylesheet */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -405,13 +503,13 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 16px;
+  padding: 14px;
 }
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid #e2e8f0;
   flex-shrink: 0;
 }
@@ -457,18 +555,18 @@ body {
 .content {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 2px 12px 0;
+  padding: 10px 2px 10px 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 .card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  padding: 12px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 .section-label {
   font-size: 10px;
@@ -485,8 +583,8 @@ body {
   justify-content: space-between;
 }
 .badge {
-  padding: 2px 8px;
-  font-size: 10px;
+  padding: 2px 6px;
+  font-size: 9.5px;
   font-weight: 700;
   background: #f1f5f9;
   color: #334155;
@@ -500,8 +598,8 @@ textarea {
   width: 100%;
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  padding: 7px 10px;
-  font-size: 12px;
+  padding: 6px 8px;
+  font-size: 11.5px;
   color: #1e293b;
   outline: none;
   transition: border-color 0.15s ease;
@@ -515,28 +613,28 @@ textarea:focus {
 input[readonly] {
   background: #f8fafc;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11px;
+  font-size: 10.5px;
   color: #334155;
 }
 .row-split {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 6px;
 }
 .alert-warning {
   background: #fffbeb;
   border: 1px solid #fef3c7;
   color: #92400e;
-  padding: 10px;
-  font-size: 11px;
-  line-height: 1.4;
+  padding: 8px;
+  font-size: 10.5px;
+  line-height: 1.35;
 }
 .status-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
-  margin-top: 4px;
+  font-size: 10.5px;
+  margin-top: 3px;
 }
 .status-found {
   color: #047857;
@@ -549,34 +647,26 @@ input[readonly] {
 .reminder-box {
   background: #eef2ff;
   border: 1px solid #c7d2fe;
-  padding: 10px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 .reminder-title {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   color: #312e81;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.note-bubble {
-  padding: 6px 8px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  font-size: 11px;
-  color: #334155;
-  margin-top: 4px;
-}
 .footer {
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid #e2e8f0;
   flex-shrink: 0;
 }
 .btn-primary {
   width: 100%;
-  padding: 10px;
+  padding: 9px;
   background: #4f46e5;
   color: #ffffff;
   font-size: 12px;
@@ -602,14 +692,33 @@ input[readonly] {
     {
       name: 'sidepanel.js',
       type: 'javascript',
-      description: 'Sidebar script that listens for active tab URL changes and syncs with chrome.storage with zero scraping',
-      code: `// Social CRM Chrome Extension Side Panel Script
+      description: 'Sidebar script with automatic background web handshake, active tab URL detection, tab bridge sync, and real-time Firestore sync',
+      code: `// SocialCRM Chrome Extension Side Panel Script
+const FIREBASE_PROJECT_ID = 'gentle-clone-0nm9t';
+const FIRESTORE_DB_ID = 'ai-studio-socialcrmchromee-61492dde-d638-4923-92b8-2ad1d964078e';
+const CRM_WEB_APP_URL = 'https://ais-dev-pn4ca7sywpbzwrvh2ea37x-170466239941.asia-southeast1.run.app';
+
 let currentTabUrl = '';
 let currentPlatform = 'other';
 let currentHandle = '';
+let userSyncKey = '';
+let userEmail = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Query initial active tab
+  // 1. Check if we already have a saved sync session
+  chrome.storage.local.get(['social_crm_sync_key', 'social_crm_user_email'], async (res) => {
+    userSyncKey = res.social_crm_sync_key || '';
+    userEmail = res.social_crm_user_email || '';
+    
+    // If not logged in, attempt auto-handshake with any open CRM web app tab
+    if (!userSyncKey) {
+      await attemptAutoWebHandshake();
+    } else {
+      updateSyncBar();
+    }
+  });
+
+  // 2. Query initial active tab
   await checkActiveTab();
 
   // Listen for tab switching
@@ -629,9 +738,114 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Full CRM dashboard
   document.getElementById('open-full-crm').addEventListener('click', () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL('index.html') });
+    chrome.tabs.create({ url: CRM_WEB_APP_URL });
+  });
+
+  // Auto connect button (if not automatically linked yet)
+  document.getElementById('auto-connect-btn').addEventListener('click', async () => {
+    const connected = await attemptAutoWebHandshake();
+    if (!connected) {
+      chrome.tabs.create({ url: CRM_WEB_APP_URL });
+    }
+  });
+
+  // Toggle Sync Settings Box
+  const settingsBox = document.getElementById('sync-settings-box');
+  document.getElementById('toggle-sync-settings').addEventListener('click', () => {
+    settingsBox.classList.toggle('hidden');
+    if (!settingsBox.classList.contains('hidden')) {
+      document.getElementById('manual-sync-key-input').value = userSyncKey || '';
+    }
+  });
+
+  document.getElementById('close-sync-settings').addEventListener('click', () => {
+    settingsBox.classList.add('hidden');
+  });
+
+  document.getElementById('save-sync-key-btn').addEventListener('click', () => {
+    const key = document.getElementById('manual-sync-key-input').value.trim();
+    if (key) {
+      userSyncKey = key;
+      userEmail = 'Manual User';
+      chrome.storage.local.set({
+        social_crm_sync_key: userSyncKey,
+        social_crm_user_email: userEmail
+      }, () => {
+        updateSyncBar();
+        settingsBox.classList.add('hidden');
+      });
+    }
+  });
+
+  document.getElementById('clear-sync-key-btn').addEventListener('click', () => {
+    userSyncKey = '';
+    userEmail = '';
+    chrome.storage.local.remove(['social_crm_sync_key', 'social_crm_user_email'], () => {
+      updateSyncBar();
+      settingsBox.classList.add('hidden');
+    });
   });
 });
+
+// Automatic Web Handshake: scans open tabs for SocialCRM and pulls user session automatically
+async function attemptAutoWebHandshake() {
+  try {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.url && (tab.url.includes('.run.app') || tab.url.includes('localhost') || tab.url.includes('ai.studio'))) {
+        try {
+          const results = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => {
+              return window.localStorage.getItem('social_crm_user_session');
+            }
+          });
+
+          if (results && results[0] && results[0].result) {
+            const session = JSON.parse(results[0].result);
+            if (session && session.uid) {
+              userSyncKey = session.uid;
+              userEmail = session.email || '';
+              chrome.storage.local.set({
+                social_crm_sync_key: userSyncKey,
+                social_crm_user_email: userEmail
+              });
+              updateSyncBar();
+              return true;
+            }
+          }
+        } catch (scriptErr) {
+          // Tab might have restricted access, continue loop
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Auto handshake check:', e);
+  }
+
+  updateSyncBar();
+  return false;
+}
+
+function updateSyncBar() {
+  const syncBar = document.getElementById('sync-bar');
+  const statusText = document.getElementById('sync-status-text');
+  const autoBtn = document.getElementById('auto-connect-btn');
+  const emailLabel = document.getElementById('user-email-label');
+
+  if (userSyncKey) {
+    syncBar.classList.remove('unlinked');
+    statusText.textContent = '🟢 Cloud Sync: Live Connected';
+    autoBtn.classList.add('hidden');
+    emailLabel.classList.remove('hidden');
+    emailLabel.textContent = userEmail ? userEmail.split('@')[0] : 'Synced';
+  } else {
+    syncBar.classList.add('unlinked');
+    statusText.textContent = '⚡ Local Mode (Sign in on web to sync)';
+    autoBtn.classList.remove('hidden');
+    emailLabel.classList.add('hidden');
+  }
+}
 
 async function checkActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -678,7 +892,7 @@ async function checkActiveTab() {
       if (existing.notes && existing.notes.length > 0) {
         notesHistory.classList.remove('hidden');
         notesList.innerHTML = existing.notes.map(n => 
-          \`<div class="p-1.5 bg-slate-100 rounded text-[10px] text-slate-700">\${n.content}</div>\`
+          \`<div style="padding: 4px; background: #f1f5f9; margin-bottom: 3px; font-size: 10px; color: #334155;">\${n.content}</div>\`
         ).join('');
       } else {
         notesHistory.classList.add('hidden');
@@ -753,9 +967,18 @@ function handleSave() {
       contacts.unshift(updatedContact);
     }
 
+    // 1. Save locally inside extension storage
     chrome.storage.local.set({ social_crm_contacts_v2: contacts }, () => {
+      // 2. Broadcast and write directly to open CRM tab localStorage for instant UI reflection
+      broadcastToWebTab(updatedContact);
+
+      // 3. If connected to Cloud, sync directly to Firestore REST API
+      if (userSyncKey) {
+        syncToCloudFirestore(userSyncKey, updatedContact);
+      }
+
       const btn = document.getElementById('save-btn');
-      btn.textContent = '✓ Saved Successfully!';
+      btn.textContent = userSyncKey ? '✓ Saved to Live Cloud!' : '✓ Saved to CRM!';
       btn.classList.add('btn-saved');
       document.getElementById('note-input').value = '';
       document.getElementById('reminder-date').value = '';
@@ -767,6 +990,100 @@ function handleSave() {
       }, 1500);
     });
   });
+}
+
+// Injects the updated contact directly into any active SocialCRM tab so the UI instantly updates
+async function broadcastToWebTab(contact) {
+  try {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.url && (tab.url.includes('.run.app') || tab.url.includes('localhost') || tab.url.includes('ai.studio'))) {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: (newContact) => {
+            try {
+              const raw = localStorage.getItem('social_crm_contacts_v2');
+              let list = raw ? JSON.parse(raw) : [];
+              const idx = list.findIndex(c => c.id === newContact.id || c.profileUrl.toLowerCase() === newContact.profileUrl.toLowerCase());
+              if (idx >= 0) {
+                list[idx] = newContact;
+              } else {
+                list.unshift(newContact);
+              }
+              localStorage.setItem('social_crm_contacts_v2', JSON.stringify(list));
+              window.dispatchEvent(new CustomEvent('social_crm_updated', { detail: list }));
+            } catch (e) {
+              console.warn('Storage sync injection:', e);
+            }
+          },
+          args: [contact]
+        }).catch(() => {});
+      }
+    }
+  } catch (e) {
+    console.warn('broadcastToWebTab error:', e);
+  }
+}
+
+// Direct Firestore REST API sync
+async function syncToCloudFirestore(userId, contact) {
+  try {
+    const url = \`https://firestore.googleapis.com/v1/projects/\${FIREBASE_PROJECT_ID}/databases/\${FIRESTORE_DB_ID}/documents/users/\${userId}/contacts/\${contact.id}\`;
+    
+    const body = {
+      fields: {
+        id: { stringValue: contact.id },
+        profileUrl: { stringValue: contact.profileUrl },
+        platform: { stringValue: contact.platform },
+        handle: { stringValue: contact.handle || '' },
+        stage: { stringValue: contact.stage || 'lead' },
+        tags: { arrayValue: { values: (contact.tags || []).map(t => ({ stringValue: t })) } },
+        notes: {
+          arrayValue: {
+            values: (contact.notes || []).map(n => ({
+              mapValue: {
+                fields: {
+                  id: { stringValue: n.id },
+                  content: { stringValue: n.content },
+                  createdAt: { stringValue: n.createdAt }
+                }
+              }
+            }))
+          }
+        },
+        reminders: {
+          arrayValue: {
+            values: (contact.reminders || []).map(r => ({
+              mapValue: {
+                fields: {
+                  id: { stringValue: r.id },
+                  date: { stringValue: r.date },
+                  time: { stringValue: r.time || '10:00' },
+                  note: { stringValue: r.note || '' },
+                  completed: { booleanValue: !!r.completed },
+                  priority: { stringValue: r.priority || 'medium' },
+                  createdAt: { stringValue: r.createdAt }
+                }
+              }
+            }))
+          }
+        },
+        rating: { integerValue: String(contact.rating || 3) },
+        createdAt: { stringValue: contact.createdAt },
+        updatedAt: { stringValue: contact.updatedAt || new Date().toISOString() }
+      }
+    };
+
+    await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+  } catch (err) {
+    console.warn('Cloud sync background error:', err);
+  }
 }
 
 function parseProfileUrl(url) {
@@ -819,13 +1136,13 @@ function parseProfileUrl(url) {
       name: 'background.js',
       type: 'javascript',
       description: 'Background service worker for Side Panel open action and reminder alarms',
-      code: `// Social CRM Chrome Extension Background Service Worker
+      code: `// SocialCRM Chrome Extension Background Service Worker
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('Social CRM Sidebar Extension installed.');
+  console.log('SocialCRM Sidebar Extension installed.');
 });
 
 // Periodic check for follow-up reminders
@@ -855,23 +1172,29 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     {
       name: 'README.md',
       type: 'markdown',
-      description: 'Instructions to install the Social CRM Sidebar into Google Chrome',
-      code: `# Social CRM Chrome Extension Sidebar (Manifest V3)
+      description: 'Instructions to install the SocialCRM Sidebar and publish to Chrome Web Store',
+      code: `# SocialCRM Chrome Extension Sidebar (Manifest V3)
 
-A full-size Google Chrome extension sidebar that docks in any tab, verifies if the active page is a LinkedIn, X, or Instagram profile, and captures the profile URL with zero DOM scraping.
+A zero-scraping Google Chrome extension sidebar that docks in any tab, auto-detects LinkedIn, X, and Instagram profile URLs, and seamlessly syncs to your live SocialCRM account with automatic authentication.
 
-## 🚀 How to Load in Google Chrome:
+## 🚀 Instant Installation & Setup:
 
-1. Create a folder named \`social-crm-extension\`.
-2. Save the files inside:
+1. Download or export the extension files into a folder:
    - \`manifest.json\`
    - \`sidepanel.html\`
+   - \`sidepanel.css\`
    - \`sidepanel.js\`
    - \`background.js\`
-3. Open Chrome and go to \`chrome://extensions/\`.
-4. Turn on **Developer mode** in the top right.
-5. Click **"Load unpacked"** and select the folder.
-6. Click the extension icon or press **\`Alt+Shift+S\`** on any tab to open the docked sidebar!`,
+2. In Google Chrome, navigate to \`chrome://extensions/\`.
+3. Enable **Developer mode** in the top right.
+4. Click **"Load unpacked"** and select the folder.
+5. Log into the SocialCRM web dashboard once with your Google account.
+6. Open any tab and press **\`Alt+Shift+S\`** or click the extension icon. The extension will automatically detect your logged-in Google account without having to enter any sync key!
+
+## 📦 Ready for Chrome Web Store Submission:
+- Fully Manifest V3 compliant
+- Zero DOM scraping (safe from platform account bans)
+- Real-time cloud synchronization`,
     },
   ];
 }

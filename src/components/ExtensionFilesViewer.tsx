@@ -106,9 +106,9 @@ export const ExtensionFilesViewer: React.FC = () => {
             1
           </div>
           <div>
-            <h4 className="font-bold text-xs text-slate-900">Save Files in a Folder</h4>
+            <h4 className="font-bold text-xs text-slate-900">Download & Load Extension</h4>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Create a folder called <code>social-crm-extension</code> and save the manifest, popup, and script files inside.
+              Download the extension zip or individual files, unzip into a folder, and click <strong>"Load unpacked"</strong> at <code>chrome://extensions</code>.
             </p>
           </div>
         </div>
@@ -118,9 +118,9 @@ export const ExtensionFilesViewer: React.FC = () => {
             2
           </div>
           <div>
-            <h4 className="font-bold text-xs text-slate-900">Open Chrome Extensions</h4>
+            <h4 className="font-bold text-xs text-slate-900">Link Account (Anyone Can Use)</h4>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Navigate to <code>chrome://extensions</code> in your address bar and enable <strong>Developer mode</strong> in the top right.
+              Sign in on the web dashboard, copy your <strong>Extension Sync Key</strong> from your avatar menu, and paste it into <strong>⚙️ Sync</strong> in the sidebar.
             </p>
           </div>
         </div>
@@ -130,9 +130,9 @@ export const ExtensionFilesViewer: React.FC = () => {
             3
           </div>
           <div>
-            <h4 className="font-bold text-xs text-slate-900">Load Unpacked</h4>
+            <h4 className="font-bold text-xs text-slate-900">1-Click Live Profile Capture</h4>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Click <strong>"Load unpacked"</strong> and pick the folder. Now visit any LinkedIn, X, or IG profile and click the icon!
+              Open any LinkedIn, X, or Instagram profile and press <code>Alt+Shift+S</code> to save the contact directly to your live cloud CRM!
             </p>
           </div>
         </div>

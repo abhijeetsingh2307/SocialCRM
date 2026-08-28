@@ -49,15 +49,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="font-bold text-base text-slate-900 leading-none">
-                  Social Contact CRM
+                  SocialCRM
                 </h1>
                 <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 font-mono">
                   v2.0
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5 hidden sm:block">
-                Zero-scraping profile URL capture for LinkedIn, X & Instagram
-              </p>
             </div>
           </div>
 

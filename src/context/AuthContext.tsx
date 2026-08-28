@@ -36,6 +36,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubscribe = subscribeToAuth((firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
+
+      if (firebaseUser) {
+        // Auto-broadcast session to Chrome Extension storage bridge
+        try {
+          window.localStorage.setItem('social_crm_user_session', JSON.stringify({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            timestamp: Date.now()
+          }));
+          window.dispatchEvent(new CustomEvent('social_crm_auth_broadcast', {
+            detail: { uid: firebaseUser.uid, email: firebaseUser.email }
+          }));
+        } catch (e) {
+          // ignore
+        }
+      } else {
+        window.localStorage.removeItem('social_crm_user_session');
+      }
     });
     return () => unsubscribe();
   }, []);
