@@ -15,9 +15,17 @@ import {
 
 interface UserAuthMenuProps {
   totalContacts: number;
+  onNavigateToLanding?: () => void;
+  onOpenPricing?: () => void;
+  isPro?: boolean;
 }
 
-export const UserAuthMenu: React.FC<UserAuthMenuProps> = ({ totalContacts }) => {
+export const UserAuthMenu: React.FC<UserAuthMenuProps> = ({
+  totalContacts,
+  onNavigateToLanding,
+  onOpenPricing,
+  isPro = false,
+}) => {
   const { user, loading, isCloudSyncing, cloudSyncError, login, logout, syncLocalToCloud } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
@@ -151,6 +159,35 @@ export const UserAuthMenu: React.FC<UserAuthMenuProps> = ({ totalContacts }) => 
             </p>
           </div>
 
+          {/* Plan & Pricing Tier Box */}
+          <div className="bg-indigo-50/70 border border-indigo-200 p-2.5 space-y-1.5">
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="font-bold uppercase tracking-wider text-indigo-900">
+                {isPro ? '⭐ Pro Unlimited Plan' : 'Free Starter Tier'}
+              </span>
+              <span className="font-mono font-bold text-indigo-700">
+                {isPro ? 'Unlimited' : `${totalContacts}/50 contacts`}
+              </span>
+            </div>
+            <p className="text-[9.5px] text-indigo-800">
+              {isPro
+                ? 'Enjoy unlimited contacts with priority real-time cloud sync.'
+                : 'First 50 contacts free. Upgrade to Pro for $10/mo for unlimited usage.'}
+            </p>
+            {onOpenPricing && (
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  onOpenPricing();
+                }}
+                className="w-full mt-1 py-1 px-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] flex items-center justify-center gap-1 transition cursor-pointer"
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>{isPro ? 'Manage Plan ($10/mo)' : 'Upgrade to Unlimited ($10/mo)'}</span>
+              </button>
+            )}
+          </div>
+
           {/* Extension Account Sync Key */}
           <div className="bg-slate-50 border border-slate-200 p-2.5 space-y-1.5">
             <div className="flex items-center justify-between text-[10px] font-bold text-slate-700 uppercase tracking-wider">
@@ -203,9 +240,12 @@ export const UserAuthMenu: React.FC<UserAuthMenuProps> = ({ totalContacts }) => 
           {/* Logout Button */}
           <div className="pt-2 border-t border-slate-100">
             <button
-              onClick={() => {
+              onClick={async () => {
                 setIsOpen(false);
-                logout();
+                await logout();
+                if (onNavigateToLanding) {
+                  onNavigateToLanding();
+                }
               }}
               className="w-full py-1.5 px-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
             >

@@ -27,9 +27,10 @@ import { FilterBar } from './components/FilterBar';
 import { ContactsTable } from './components/ContactsTable';
 import { RemindersCenter } from './components/RemindersCenter';
 import { ExtensionFilesViewer } from './components/ExtensionFilesViewer';
-import { ExtensionSimulatorModal } from './components/ExtensionSimulatorModal';
 import { ContactDetailDrawer } from './components/ContactDetailDrawer';
 import { QuickAddModal } from './components/QuickAddModal';
+import { LandingPage } from './components/LandingPage';
+import { PricingModal } from './components/PricingModal';
 import {
   Users,
   Clock,
@@ -41,18 +42,73 @@ import {
   CheckCircle2,
   Cloud,
   ShieldCheck,
+  Crown,
 } from 'lucide-react';
 
 export default function App() {
   const { user, loading: authLoading, login } = useAuth();
+  
+  // Route state: 'landing' or 'app'
+  const [currentRoute, setCurrentRoute] = useState<'landing' | 'app'>(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path.startsWith('/app') || window.location.hash === '#app') {
+        return 'app';
+      }
+    }
+    return 'landing';
+  });
+
+  const navigateToApp = () => {
+    setCurrentRoute('app');
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', '/app');
+    }
+  };
+
+  const navigateToLanding = () => {
+    setCurrentRoute('landing');
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', '/');
+    }
+  };
+
+  // Sync route on popstate (browser back / forward button)
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path.startsWith('/app') || window.location.hash === '#app') {
+        setCurrentRoute('app');
+      } else {
+        setCurrentRoute('landing');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Pro Unlimited plan state
+  const [isPro, setIsPro] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.localStorage.getItem('social_crm_is_pro') === 'true';
+    }
+    return false;
+  });
+
+  const handleTogglePro = (pro: boolean) => {
+    setIsPro(pro);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('social_crm_is_pro', pro ? 'true' : 'false');
+    }
+  };
+
   const [contacts, setContacts] = useState<SocialContact[]>([]);
   const [customTags, setCustomTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [selectedContact, setSelectedContact] = useState<SocialContact | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [isExtensionSimOpen, setIsExtensionSimOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
-  const [simInitialUrl, setSimInitialUrl] = useState<string | undefined>(undefined);
+  const [isPricingOpen, setIsPricingOpen] = useState(false);
 
   const [filter, setFilter] = useState<FilterState>({
     search: '',
@@ -333,6 +389,10 @@ export default function App() {
     return Array.from(set);
   }, [contacts, customTags]);
 
+  if (currentRoute === 'landing') {
+    return <LandingPage onNavigateToApp={navigateToApp} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
       
@@ -341,19 +401,42 @@ export default function App() {
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         onOpenQuickAdd={() => setIsQuickAddOpen(true)}
-        onOpenExtensionSimulator={() => {
-          setSimInitialUrl(undefined);
-          setIsExtensionSimOpen(true);
-        }}
+        onNavigateToLanding={navigateToLanding}
+        onOpenPricing={() => setIsPricingOpen(true)}
         onExportJson={() => exportContactsAsJson(contacts)}
         onExportCsv={() => exportContactsAsCsv(contacts)}
         totalContacts={contacts.length}
         dueTodayCount={dueTodayCount}
+        isPro={isPro}
       />
 
       {/* Main Content View */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
+        {/* Contact Limit Reached Warning Banner */}
+        {contacts.length >= 50 && !isPro && (
+          <div className="bg-rose-50 border-2 border-rose-300 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-rose-900 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-rose-600 flex items-center justify-center text-white font-bold shrink-0">
+                <Crown className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="font-bold text-xs">You've reached your free 50 contacts limit</p>
+                <p className="text-[11px] text-rose-700">
+                  Upgrade to Pro for just <strong>$10/month</strong> for unlimited contacts and priority cloud features.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsPricingOpen(true)}
+              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 rounded-lg shadow-sm"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Upgrade to Pro ($10/mo)</span>
+            </button>
+          </div>
+        )}
+
         {/* Live Cloud Banner for Guest Users */}
         {!user && !authLoading && (
           <div className="bg-gradient-to-r from-indigo-900 to-slate-900 text-white p-4 border border-indigo-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -362,9 +445,9 @@ export default function App() {
                 <Sparkles className="w-4 h-4 text-amber-300" />
               </div>
               <div>
-                <p className="font-bold text-xs">Free 1000 contacts for each platform</p>
+                <p className="font-bold text-xs">First 50 contacts free · $10/month for unlimited usage</p>
                 <p className="text-[11px] text-slate-300">
-                  Get started for free · Sync your contacts, notes, and reminders across all devices.
+                  Sign in with Google to sync contacts in real-time across your Manifest V3 Chrome Extension and Web CRM.
                 </p>
               </div>
             </div>
@@ -421,7 +504,7 @@ export default function App() {
               <div className="py-16 text-center bg-white border border-slate-200 shadow-xs space-y-2">
                 <p className="text-sm font-semibold text-slate-700">No contacts found</p>
                 <p className="text-xs text-slate-400">
-                  Try clearing your search filters or click <strong>Extension Sidebar</strong> to save profile URLs.
+                  Try clearing your search filters or click <strong>Add URL</strong> to save profile URLs.
                 </p>
               </div>
             )}
@@ -455,17 +538,6 @@ export default function App() {
         onAddCustomTag={handleAddCustomTag}
       />
 
-      {/* Chrome Extension Live Tab Simulator Modal */}
-      <ExtensionSimulatorModal
-        isOpen={isExtensionSimOpen}
-        onClose={() => setIsExtensionSimOpen(false)}
-        onSaveContact={handleSaveContactFromModal}
-        existingContacts={contacts}
-        initialUrl={simInitialUrl}
-        customTags={customTags}
-        onAddCustomTag={handleAddCustomTag}
-      />
-
       {/* Quick Add URL Modal */}
       <QuickAddModal
         isOpen={isQuickAddOpen}
@@ -473,6 +545,15 @@ export default function App() {
         onSaveContact={handleSaveContactFromModal}
         customTags={customTags}
         onAddCustomTag={handleAddCustomTag}
+      />
+
+      {/* Pricing & Upgrade Modal */}
+      <PricingModal
+        isOpen={isPricingOpen}
+        onClose={() => setIsPricingOpen(false)}
+        currentCount={contacts.length}
+        isPro={isPro}
+        onTogglePro={handleTogglePro}
       />
 
       {/* Minimal Footer */}
@@ -485,13 +566,10 @@ export default function App() {
               {user ? '🟢 Live Firestore Cloud Sync' : 'Local Storage Sync'}
             </span>
             <button
-              onClick={() => {
-                setSimInitialUrl(undefined);
-                setIsExtensionSimOpen(true);
-              }}
+              onClick={navigateToLanding}
               className="text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer"
             >
-              Open Extension Sidebar Simulator
+              ← Back to Main Website
             </button>
           </div>
         </div>
